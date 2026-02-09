@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Deal Analyzer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #root {
+            width: 100%;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        // Lucide icons as SVG components
+        const TrendingUp = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+        );
+
+        const DollarSign = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+        );
+
+        const Home = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        );
+
+        const Calculator = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                <line x1="8" y1="6" x2="16" y2="6"></line>
+                <line x1="16" y1="14" x2="16" y2="14.01"></line>
+                <line x1="12" y1="14" x2="12" y2="14.01"></line>
+                <line x1="8" y1="14" x2="8" y2="14.01"></line>
+                <line x1="16" y1="18" x2="16" y2="18.01"></line>
+                <line x1="12" y1="18" x2="12" y2="18.01"></line>
+                <line x1="8" y1="18" x2="8" y2="18.01"></line>
+            </svg>
+        );
+
+        const AlertCircle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        );
+
+        const CheckCircle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+
+        const RealEstateAnalyzer = () => {
+          const [street, setStreet] = useState('');
+          const [city, setCity] = useState('');
+          const [state, setState] = useState('');
+          const [zip, setZip] = useState('');
+          const [rehabCosts, setRehabCosts] = useState(0);
+          const [analysisData, setAnalysisData] = useState(null);
+          const [loading, setLoading] = useState(false);
+
+          const usStates = [
+            'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+            'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+            'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+            'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+            'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+          ];
+
+          const generateAnalysis = () => {
+            if (!street || !city || !state || !zip) {
+              alert('Please fill in all address fields');
+              return;
+            }
+            
+            setLoading(true);
+            
+            setTimeout(() => {
+              const baseValue = Math.floor(Math.random() * 300000) + 250000;
+              const appreciationRate = 0.03 + (Math.random() * 0.04);
+              
+              const historicalData = [];
+              let currentValue = baseValue * 0.82;
+              for (let i = -5; i <= 0; i++) {
+                historicalData.push({
+                  year: new Date().getFullYear() + i,
+                  value: Math.round(currentValue),
+                });
+                currentValue *= (1 + appreciationRate - 0.01);
+              }
+              
+              const futureData = [];
+              currentValue = baseValue;
+              for (let i = 0; i <= 5; i++) {
+                futureData.push({
+                  year: new Date().getFullYear() + i,
+                  projected: Math.round(currentValue),
+                  conservative: Math.round(currentValue * 0.95),
+                  optimistic: Math.round(currentValue * 1.05),
+                });
+                currentValue *= (1 + appreciationRate);
+              }
+              
+              const downPayment = baseValue * 0.20;
+              const loanAmount = baseValue * 0.80;
+              const closingCosts = baseValue * 0.03;
+              const monthlyRate = 0.065 / 12;
+              const numPayments = 360;
+              const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                                    (Math.pow(1 + monthlyRate, numPayments) - 1);
+              const propertyTax = baseValue * 0.012 / 12;
+              const insurance = (baseValue * 0.004) / 12;
+              const hoa = 150;
+              
+              const totalMonthly = monthlyPayment + propertyTax + insurance + hoa;
+              const totalInitial = downPayment + closingCosts + rehabCosts;
+              
+              const monthlyRentLongTerm = baseValue * 0.008;
+              const monthlyRentShortTerm = baseValue * 0.012;
+              const vacancyRateLongTerm = 0.08;
+              const vacancyRateShortTerm = 0.15;
+              const managementFeeLongTerm = 0.10;
+              const managementFeeShortTerm = 0.20;
+              
+              const rentalProjections = [];
+              for (let year = 1; year <= 3; year++) {
+                const ltAnnualRent = monthlyRentLongTerm * 12 * (1 - vacancyRateLongTerm);
+                const ltExpenses = (totalMonthly * 12) + (ltAnnualRent * managementFeeLongTerm) + 
+                                  (baseValue * 0.01);
+                const ltProfit = ltAnnualRent - ltExpenses;
+                
+                const stAnnualRent = monthlyRentShortTerm * 12 * (1 - vacancyRateShortTerm);
+                const stExpenses = (totalMonthly * 12) + (stAnnualRent * managementFeeShortTerm) + 
+                                  (baseValue * 0.02) + 6000;
+                const stProfit = stAnnualRent - stExpenses;
+                
+                rentalProjections.push({
+                  year,
+                  longTermRevenue: Math.round(ltAnnualRent),
+                  longTermProfit: Math.round(ltProfit),
+                  shortTermRevenue: Math.round(stAnnualRent),
+                  shortTermProfit: Math.round(stProfit),
+                });
+              }
+              
+              const afterRepairValue = baseValue + (rehabCosts * 1.5);
+              const holdingCosts = totalMonthly * 6;
+              const flipProfit = afterRepairValue - baseValue - rehabCosts - holdingCosts - (afterRepairValue * 0.06);
+              const flipROI = (flipProfit / totalInitial) * 100;
+              
+              const brrrARV = baseValue + (rehabCosts * 1.3);
+              const refinanceAmount = brrrARV * 0.75;
+              const cashRecovered = refinanceAmount - loanAmount;
+              const brrrCashLeft = totalInitial - cashRecovered;
+              const brrrAnnualCashFlow = rentalProjections[0].longTermProfit;
+              const brrrROI = brrrCashLeft > 0 ? (brrrAnnualCashFlow / brrrCashLeft) * 100 : 999;
+              
+              const holdAppreciation = futureData[3].projected - baseValue;
+              const holdCashFlow = rentalProjections.reduce((sum, p) => sum + p.longTermProfit, 0);
+              const holdTotalReturn = holdAppreciation + holdCashFlow;
+              const holdROI = (holdTotalReturn / totalInitial) * 100;
+              
+              let recommendation;
+              let recommendationReason;
+              
+              if (flipROI > 25 && rehabCosts > 0) {
+                recommendation = "Fix & Flip";
+                recommendationReason = `Strong flip potential with ${flipROI.toFixed(1)}% ROI. Quick profit opportunity.`;
+              } else if (brrrROI > 20 && rehabCosts > 0) {
+                recommendation = "BRRR Strategy";
+                recommendationReason = `Excellent BRRR opportunity with ${brrrROI.toFixed(1)}% cash-on-cash return. Recover most of your investment.`;
+              } else if (holdROI > 15) {
+                recommendation = "Long-Term Hold";
+                recommendationReason = `Solid buy-and-hold with ${holdROI.toFixed(1)}% total ROI over 3 years. Strong appreciation and cash flow.`;
+              } else if (rentalProjections[0].shortTermProfit > rentalProjections[0].longTermProfit * 1.5) {
+                recommendation = "Short-Term Rental";
+                recommendationReason = `Short-term rental shows significantly better returns. Consider Airbnb strategy.`;
+              } else {
+                recommendation = "Not Recommended";
+                recommendationReason = `Returns are below investment-grade thresholds. Consider other opportunities.`;
+              }
+              
+              setAnalysisData({
+                property: {
+                  address: `${street}, ${city}, ${state} ${zip}`,
+                  currentValue: baseValue,
+                  appreciationRate: (appreciationRate * 100).toFixed(2),
+                },
+                historical: historicalData,
+                projections: futureData,
+                costs: {
+                  purchasePrice: baseValue,
+                  downPayment,
+                  loanAmount,
+                  closingCosts,
+                  rehabCosts,
+                  totalInitial,
+                  monthlyPayment,
+                  propertyTax,
+                  insurance,
+                  hoa,
+                  totalMonthly,
+                },
+                rental: rentalProjections,
+                strategies: {
+                  flip: { profit: flipProfit, roi: flipROI },
+                  brrr: { cashRecovered, cashLeft: brrrCashLeft, roi: brrrROI },
+                  hold: { totalReturn: holdTotalReturn, roi: holdROI },
+                },
+                recommendation,
+                recommendationReason,
+              });
+              
+              setLoading(false);
+            }, 1500);
+          };
+
+          const resetAnalysis = () => {
+            setAnalysisData(null);
+            setStreet('');
+            setCity('');
+            setState('');
+            setZip('');
+            setRehabCosts(0);
+          };
+
+          const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(value);
+          };
+
+          const inputStyle = {
+            width: '100%',
+            padding: '16px 20px',
+            fontSize: '16px',
+            border: '2px solid rgba(96, 165, 250, 0.3)',
+            borderRadius: '12px',
+            background: 'rgba(15, 23, 42, 0.5)',
+            color: '#e2e8f0',
+            fontFamily: 'inherit',
+            transition: 'all 0.3s ease',
+            outline: 'none',
+            boxSizing: 'border-box',
+          };
+
+          const labelStyle = {
+            display: 'block',
+            color: '#cbd5e1',
+            fontSize: '14px',
+            fontWeight: '600',
+            marginBottom: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          };
+
+          return (
+            <div style={{
+              minHeight: '100vh',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+              padding: '40px 20px',
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            }}>
+              <div style={{
+                maxWidth: '1400px',
+                margin: '0 auto',
+              }}>
+                {!analysisData ? (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: '24px',
+                    padding: '50px',
+                    maxWidth: '700px',
+                    margin: '0 auto',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 25px 70px rgba(0, 0, 0, 0.4)',
+                  }}>
+                    <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                        marginBottom: '24px',
+                        boxShadow: '0 15px 40px rgba(59, 130, 246, 0.4)',
+                      }}>
+                        <Home />
+                      </div>
+                      <h1 style={{
+                        color: '#f1f5f9',
+                        fontSize: '36px',
+                        marginTop: 0,
+                        marginBottom: '12px',
+                        fontWeight: '800',
+                        letterSpacing: '-0.02em',
+                      }}>
+                        Real Estate Deal Analyzer
+                      </h1>
+                      <p style={{
+                        color: '#94a3b8',
+                        fontSize: '16px',
+                        margin: 0,
+                        lineHeight: '1.6',
+                      }}>
+                        Enter property details to analyze investment potential
+                      </p>
+                    </div>
+
+                    <div style={{ marginBottom: '28px' }}>
+                      <label style={labelStyle}>Street Address</label>
+                      <input
+                        type="text"
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                        placeholder="123 Main Street"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
+                      <div>
+                        <label style={labelStyle}>City</label>
+                        <input
+                          type="text"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder="San Francisco"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>State</label>
+                        <select
+                          value={state}
+                          onChange={(e) => setState(e.target.value)}
+                          style={{
+                            ...inputStyle,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <option value="">Select State</option>
+                          {usStates.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '28px' }}>
+                      <label style={labelStyle}>ZIP Code</label>
+                      <input
+                        type="text"
+                        value={zip}
+                        onChange={(e) => setZip(e.target.value)}
+                        placeholder="94102"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: '40px' }}>
+                      <label style={labelStyle}>
+                        Estimated Rehab Costs (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        value={rehabCosts}
+                        onChange={(e) => setRehabCosts(Number(e.target.value))}
+                        placeholder="0"
+                        style={inputStyle}
+                      />
+                    </div>
+
+                    <button
+                      onClick={generateAnalysis}
+                      disabled={loading}
+                      style={{
+                        width: '100%',
+                        padding: '20px',
+                        fontSize: '18px',
+                        fontWeight: '700',
+                        background: loading ? '#475569' : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: loading ? 'none' : '0 10px 30px rgba(59, 130, 246, 0.4)',
+                      }}
+                    >
+                      {loading ? 'Analyzing...' : 'Analyze Investment'}
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Recommendation Banner */}
+                    <div style={{
+                      background: analysisData.recommendation === 'Not Recommended' 
+                        ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15))'
+                        : 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.15))',
+                      border: analysisData.recommendation === 'Not Recommended'
+                        ? '2px solid rgba(239, 68, 68, 0.4)'
+                        : '2px solid rgba(34, 197, 94, 0.4)',
+                      borderRadius: '20px',
+                      padding: '32px',
+                      marginBottom: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px',
+                    }}>
+                      <div style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        background: analysisData.recommendation === 'Not Recommended'
+                          ? 'rgba(239, 68, 68, 0.2)'
+                          : 'rgba(34, 197, 94, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        {analysisData.recommendation === 'Not Recommended' ? <AlertCircle /> : <CheckCircle />}
+                      </div>
+                      <div>
+                        <h2 style={{
+                          color: analysisData.recommendation === 'Not Recommended' ? '#fca5a5' : '#86efac',
+                          fontSize: '28px',
+                          marginTop: 0,
+                          marginBottom: '8px',
+                          fontWeight: '800',
+                        }}>
+                          {analysisData.recommendation}
+                        </h2>
+                        <p style={{
+                          color: '#cbd5e1',
+                          fontSize: '16px',
+                          margin: 0,
+                          lineHeight: '1.6',
+                        }}>
+                          {analysisData.recommendationReason}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Property Overview */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '20px',
+                      padding: '40px',
+                      marginBottom: '30px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                    }}>
+                      <h2 style={{
+                        color: '#e2e8f0',
+                        fontSize: '24px',
+                        marginTop: 0,
+                        marginBottom: '30px',
+                        fontWeight: '700',
+                      }}>
+                        Property Overview
+                      </h2>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                        gap: '24px',
+                      }}>
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1))',
+                          padding: '24px',
+                          borderRadius: '16px',
+                          border: '2px solid rgba(59, 130, 246, 0.2)',
+                        }}>
+                          <div style={{ color: '#60a5fa', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                            Address
+                          </div>
+                          <div style={{ color: '#e2e8f0', fontSize: '18px', fontWeight: '700' }}>
+                            {analysisData.property.address}
+                          </div>
+                        </div>
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1))',
+                          padding: '24px',
+                          borderRadius: '16px',
+                          border: '2px solid rgba(16, 185, 129, 0.2)',
+                        }}>
+                          <div style={{ color: '#34d399', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                            Estimated Value
+                          </div>
+                          <div style={{ color: '#e2e8f0', fontSize: '24px', fontWeight: '800' }}>
+                            {formatCurrency(analysisData.property.currentValue)}
+                          </div>
+                        </div>
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(147, 51, 234, 0.1))',
+                          padding: '24px',
+                          borderRadius: '16px',
+                          border: '2px solid rgba(168, 85, 247, 0.2)',
+                        }}>
+                          <div style={{ color: '#c084fc', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                            Appreciation Rate
+                          </div>
+                          <div style={{ color: '#e2e8f0', fontSize: '24px', fontWeight: '800' }}>
+                            {analysisData.property.appreciationRate}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Value Projections */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '20px',
+                      padding: '40px',
+                      marginBottom: '30px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                    }}>
+                      <h2 style={{
+                        color: '#e2e8f0',
+                        fontSize: '24px',
+                        marginTop: 0,
+                        marginBottom: '30px',
+                        fontWeight: '700',
+                      }}>
+                        Value Projections
+                      </h2>
+                      <ResponsiveContainer width="100%" height={400}>
+                        <LineChart data={analysisData.projections}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                          <XAxis dataKey="year" stroke="#94a3b8" style={{ fontSize: '13px' }} />
+                          <YAxis 
+                            stroke="#94a3b8" 
+                            style={{ fontSize: '13px' }}
+                            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          />
+                          <Tooltip 
+                            contentStyle={{
+                              background: 'rgba(15, 23, 42, 0.95)',
+                              border: '1px solid rgba(96, 165, 250, 0.3)',
+                              borderRadius: '8px',
+                              color: '#e2e8f0',
+                            }}
+                            formatter={(value) => formatCurrency(value)}
+                          />
+                          <Legend wrapperStyle={{ color: '#cbd5e1' }} />
+                          <Line type="monotone" dataKey="conservative" stroke="#ef4444" strokeWidth={2} name="Conservative" dot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="projected" stroke="#3b82f6" strokeWidth={3} name="Projected" dot={{ r: 5 }} />
+                          <Line type="monotone" dataKey="optimistic" stroke="#22c55e" strokeWidth={2} name="Optimistic" dot={{ r: 4 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Financial Breakdown */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '20px',
+                      padding: '40px',
+                      marginBottom: '30px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                    }}>
+                      <h2 style={{
+                        color: '#e2e8f0',
+                        fontSize: '24px',
+                        marginTop: 0,
+                        marginBottom: '30px',
+                        fontWeight: '700',
+                      }}>
+                        Financial Breakdown
+                      </h2>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '24px',
+                      }}>
+                        <div style={{
+                          background: 'rgba(59, 130, 246, 0.05)',
+                          padding: '28px',
+                          borderRadius: '16px',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                        }}>
+                          <h3 style={{ color: '#60a5fa', fontSize: '18px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Initial Investment
+                          </h3>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Purchase Price</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.purchasePrice)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Down Payment (20%)</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.downPayment)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Closing Costs</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.closingCosts)}
+                            </div>
+                          </div>
+                          {analysisData.costs.rehabCosts > 0 && (
+                            <div style={{ marginBottom: '14px' }}>
+                              <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Rehab Costs</div>
+                              <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                                {formatCurrency(analysisData.costs.rehabCosts)}
+                              </div>
+                            </div>
+                          )}
+                          <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(96, 165, 250, 0.2)', marginTop: '8px' }}>
+                            <div style={{ color: '#60a5fa', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>
+                              Total Initial Investment
+                            </div>
+                            <div style={{ color: '#3b82f6', fontSize: '28px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.costs.totalInitial)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          background: 'rgba(168, 85, 247, 0.05)',
+                          padding: '28px',
+                          borderRadius: '16px',
+                          border: '1px solid rgba(168, 85, 247, 0.2)',
+                        }}>
+                          <h3 style={{ color: '#a78bfa', fontSize: '18px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Monthly Expenses
+                          </h3>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Mortgage (6.5%, 30yr)</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.monthlyPayment)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Property Tax</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.propertyTax)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>Insurance</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.insurance)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '14px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '4px' }}>HOA Fees</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '600' }}>
+                              {formatCurrency(analysisData.costs.hoa)}
+                            </div>
+                          </div>
+                          <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(168, 85, 247, 0.2)', marginTop: '8px' }}>
+                            <div style={{ color: '#c084fc', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>
+                              Total Monthly
+                            </div>
+                            <div style={{ color: '#a78bfa', fontSize: '28px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.costs.totalMonthly)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Rental Income Analysis */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '20px',
+                      padding: '40px',
+                      marginBottom: '30px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                    }}>
+                      <h2 style={{
+                        color: '#e2e8f0',
+                        fontSize: '24px',
+                        marginTop: 0,
+                        marginBottom: '30px',
+                        fontWeight: '700',
+                      }}>
+                        Rental Income Analysis
+                      </h2>
+                      
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                        gap: '24px',
+                        marginBottom: '30px',
+                      }}>
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1))',
+                          border: '2px solid rgba(34, 197, 94, 0.3)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                        }}>
+                          <h3 style={{ color: '#22c55e', fontSize: '20px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Long-Term Rental
+                          </h3>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Year 1 Net Income</div>
+                            <div style={{ color: '#22c55e', fontSize: '24px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.rental[0].longTermProfit)}
+                            </div>
+                          </div>
+                          <div style={{
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginTop: '16px',
+                          }}>
+                            <div style={{ color: '#86efac', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>
+                              3-Year Total Profit
+                            </div>
+                            <div style={{ color: '#22c55e', fontSize: '28px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.rental.reduce((sum, y) => sum + y.longTermProfit, 0))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(147, 51, 234, 0.1))',
+                          border: '2px solid rgba(168, 85, 247, 0.3)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                        }}>
+                          <h3 style={{ color: '#a78bfa', fontSize: '20px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Short-Term Rental
+                          </h3>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Year 1 Net Income</div>
+                            <div style={{ color: '#a78bfa', fontSize: '24px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.rental[0].shortTermProfit)}
+                            </div>
+                          </div>
+                          <div style={{
+                            background: 'rgba(168, 85, 247, 0.1)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginTop: '16px',
+                          }}>
+                            <div style={{ color: '#c4b5fd', fontSize: '14px', fontWeight: '600', marginBottom: '6px' }}>
+                              3-Year Total Profit
+                            </div>
+                            <div style={{ color: '#a78bfa', fontSize: '28px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.rental.reduce((sum, y) => sum + y.shortTermProfit, 0))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <h3 style={{ color: '#cbd5e1', fontSize: '18px', fontWeight: '700', marginBottom: '20px' }}>
+                        Rental Strategy Comparison
+                      </h3>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <BarChart data={analysisData.rental}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                          <XAxis dataKey="year" stroke="#94a3b8" style={{ fontSize: '13px' }} />
+                          <YAxis 
+                            stroke="#94a3b8" 
+                            style={{ fontSize: '13px' }}
+                            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                          />
+                          <Tooltip 
+                            contentStyle={{
+                              background: 'rgba(15, 23, 42, 0.95)',
+                              border: '1px solid rgba(96, 165, 250, 0.3)',
+                              borderRadius: '8px',
+                              color: '#e2e8f0',
+                            }}
+                            formatter={(value) => formatCurrency(value)}
+                          />
+                          <Legend wrapperStyle={{ color: '#cbd5e1' }} />
+                          <Bar dataKey="longTermProfit" fill="#22c55e" name="Long-Term Profit" radius={[8, 8, 0, 0]} />
+                          <Bar dataKey="shortTermProfit" fill="#a78bfa" name="Short-Term Profit" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Investment Strategies */}
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '20px',
+                      padding: '40px',
+                      marginBottom: '30px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                    }}>
+                      <h2 style={{
+                        color: '#e2e8f0',
+                        fontSize: '24px',
+                        marginTop: 0,
+                        marginBottom: '30px',
+                        fontWeight: '700',
+                      }}>
+                        Investment Strategy Analysis
+                      </h2>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '24px',
+                      }}>
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1))',
+                          border: '2px solid rgba(251, 191, 36, 0.3)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                        }}>
+                          <h3 style={{ color: '#fbbf24', fontSize: '20px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Fix & Flip
+                          </h3>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Estimated Profit</div>
+                            <div style={{
+                              color: analysisData.strategies.flip.profit > 0 ? '#fbbf24' : '#ef4444',
+                              fontSize: '28px',
+                              fontWeight: '800',
+                            }}>
+                              {formatCurrency(analysisData.strategies.flip.profit)}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>ROI</div>
+                            <div style={{
+                              color: analysisData.strategies.flip.roi > 0 ? '#fbbf24' : '#ef4444',
+                              fontSize: '24px',
+                              fontWeight: '800',
+                            }}>
+                              {analysisData.strategies.flip.roi.toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1))',
+                          border: '2px solid rgba(59, 130, 246, 0.3)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                        }}>
+                          <h3 style={{ color: '#3b82f6', fontSize: '20px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            BRRR Strategy
+                          </h3>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Cash Recovered</div>
+                            <div style={{ color: '#3b82f6', fontSize: '24px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.strategies.brrr.cashRecovered)}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Cash Left In Deal</div>
+                            <div style={{ color: '#cbd5e1', fontSize: '20px', fontWeight: '700' }}>
+                              {formatCurrency(analysisData.strategies.brrr.cashLeft)}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Cash-on-Cash Return</div>
+                            <div style={{
+                              color: analysisData.strategies.brrr.roi > 100 ? '#22c55e' : '#3b82f6',
+                              fontSize: '24px',
+                              fontWeight: '800',
+                            }}>
+                              {analysisData.strategies.brrr.roi > 500 ? '∞' : `${analysisData.strategies.brrr.roi.toFixed(1)}%`}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1))',
+                          border: '2px solid rgba(16, 185, 129, 0.3)',
+                          borderRadius: '16px',
+                          padding: '28px',
+                        }}>
+                          <h3 style={{ color: '#10b981', fontSize: '20px', fontWeight: '700', marginTop: 0, marginBottom: '20px' }}>
+                            Buy & Hold
+                          </h3>
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>3-Year Total Return</div>
+                            <div style={{ color: '#10b981', fontSize: '24px', fontWeight: '800' }}>
+                              {formatCurrency(analysisData.strategies.hold.totalReturn)}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '6px' }}>Total ROI</div>
+                            <div style={{
+                              color: analysisData.strategies.hold.roi > 0 ? '#10b981' : '#ef4444',
+                              fontSize: '24px',
+                              fontWeight: '800',
+                            }}>
+                              {analysisData.strategies.hold.roi.toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={resetAnalysis}
+                      style={{
+                        width: '100%',
+                        padding: '18px',
+                        fontSize: '18px',
+                        fontWeight: '700',
+                        background: 'linear-gradient(135deg, #60a5fa, #a78bfa)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 10px 30px rgba(96, 165, 250, 0.3)',
+                      }}
+                    >
+                      ← Analyze Another Property
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+              `}</style>
+            </div>
+          );
+        };
+
+        // Render the app
+        ReactDOM.render(<RealEstateAnalyzer />, document.getElementById('root'));
+    </script>
+</body>
+</html>
